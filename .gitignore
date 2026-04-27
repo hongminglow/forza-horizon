@@ -1,0 +1,15 @@
+node_modules/
+dist/
+
+.vite/
+*.tsbuildinfo
+
+.codex-browser-profile/
+.codex-screenshots/
+.codex-vite.log
+.codex-vite.err.log
+
+playtest-*.png
+
+.DS_Store
+Thumbs.db
