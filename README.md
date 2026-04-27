@@ -25,9 +25,9 @@ The car uses a custom fixed-step vehicle controller layered over a Rapier physic
 - `W` applies engine acceleration along the car body.
 - `S` applies braking force, then reverse acceleration.
 - `A` and `D` change the steering angle, similar to turning front tires.
-- Steering affects yaw rate based on speed, wheelbase, grip, and steering angle.
-- The car keeps a world-space velocity vector, so the body heading and movement direction can differ briefly during turns.
-- Lateral tire grip damps sideways slip over time instead of instantly snapping the car to the new heading.
+- Steering affects yaw rate from signed speed, input direction, and grip. `A` and `D` only rotate heading; they never directly change world `x` or `z`.
+- The car advances through signed longitudinal speed, so normal driving follows the body direction instead of sliding sideways like a free-moving object.
+- Reversing uses the same steering angle with inverted yaw response, so `S + D` backs the car to the driver's right and `S + A` backs it to the driver's left.
 - Track edges apply pushback and drag when the car leaves the driveable lane.
 - Logs, rocks, and trees use collision proxies so the car cannot pass through them.
 - Lap counting requires forward motion through the full checkpoint sequence before crossing the finish line.

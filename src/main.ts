@@ -12,7 +12,7 @@ import {
   yawFromTangent,
 } from "./game/track";
 import { createCarBody, createPhysicsWorld } from "./physics/world";
-import { createCarRig } from "./render/carModel";
+import { createCarRig, updateCarRigSteering } from "./render/carModel";
 import { buildJungleTrack } from "./render/jungle";
 
 const FIXED_DELTA = 1 / 60;
@@ -84,6 +84,7 @@ async function bootstrap(): Promise<void> {
     }
 
     carController.syncObject(carRig);
+    updateCarRigSteering(carRig, carController.getSteeringAngle());
     updateCameraFeel(
       camera,
       latestHud,
