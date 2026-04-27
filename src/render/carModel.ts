@@ -122,7 +122,7 @@ export function updateCarRigSteering(
     const wheelPivot = rig.getObjectByName(name);
 
     if (wheelPivot) {
-      wheelPivot.rotation.y = visualSteer;
+      wheelPivot.rotation.y = -visualSteer;
     }
   }
 

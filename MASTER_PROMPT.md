@@ -17,8 +17,9 @@ This document is the shared source of truth for the game. Any future implementat
 - [x] Locked camera yaw/pitch to car heading during normal driving.
 - [x] Defined per-frame requestAnimationFrame update order.
 - [ ] User review and approval of this master spec.
-- [ ] Apply final control fixes strictly from this spec.
-- [ ] Re-test parked steering, forward turning, reverse turning, collisions, lap counting, desktop render, and mobile render.
+- [x] Apply final control fixes strictly from this spec.
+- [x] Re-test parked steering, forward turning, reverse turning, desktop render, and mobile render.
+- [ ] Manual collision/lap playtest pass after user reviews the updated driving feel.
 
 ## Product Summary
 
@@ -85,6 +86,14 @@ forward.z = -Math.cos(heading);
 ```
 
 The exact sign of `z` is less important than consistency. All movement must use the car's current heading vector, not direct world-axis input.
+
+Three.js visual rotation must be aligned to this simulation convention. Because a positive Three.js Y rotation turns a local `-Z` car/camera left, the render adapter must apply simulation heading as negative visual yaw:
+
+```ts
+object.quaternion.setFromEuler(new THREE.Euler(0, -heading, 0));
+```
+
+This keeps `D` / positive heading visually turning right instead of making the camera appear to turn left.
 
 ## Input Contract
 

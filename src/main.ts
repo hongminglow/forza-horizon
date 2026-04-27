@@ -15,8 +15,6 @@ import { createCarBody, createPhysicsWorld } from "./physics/world";
 import { createCarRig, updateCarRigSteering } from "./render/carModel";
 import { buildJungleTrack } from "./render/jungle";
 
-const FIXED_DELTA = 1 / 60;
-
 async function bootstrap(): Promise<void> {
   const runtimeWindow = window as Window & {
     __jungleSprintCleanup?: () => void;
@@ -62,27 +60,22 @@ async function bootstrap(): Promise<void> {
 
   const input = new InputController();
   const hud = createHud();
+  const clock = new THREE.Clock();
 
   setupLighting(scene);
   const cleanupResize = setupResize(camera, renderer);
   const cleanupContextRecovery = setupContextRecovery(renderer);
 
-  let lastTime = performance.now();
-  let accumulator = 0;
-  let latestHud = carController.getHudState(lastTime / 1000);
+  let latestHud = carController.getHudState(performance.now() / 1000);
 
   renderer.setAnimationLoop((time) => {
-    const frameDelta = Math.min((time - lastTime) / 1000, 0.09);
-    lastTime = time;
-    accumulator += frameDelta;
+    const delta = Math.min(clock.getDelta(), 0.05);
+    const now = time / 1000;
+    const driveInput = input.read();
 
-    while (accumulator >= FIXED_DELTA) {
-      physics.world.timestep = FIXED_DELTA;
-      latestHud = carController.update(input.read(), FIXED_DELTA, time / 1000);
-      physics.world.step();
-      accumulator -= FIXED_DELTA;
-    }
-
+    physics.world.timestep = delta;
+    latestHud = carController.update(driveInput, delta, now);
+    physics.world.step();
     carController.syncObject(carRig);
     updateCarRigSteering(carRig, carController.getSteeringAngle());
     updateCameraFeel(
@@ -192,11 +185,15 @@ function updateCameraFeel(
 ): void {
   const speedFactor = THREE.MathUtils.clamp(hud.speedKph / 125, 0, 1);
   const roadPulse = Math.sin(performance.now() * 0.012 + yaw * 2) * 0.012 * speedFactor;
-  const targetRoll = THREE.MathUtils.clamp(-steeringLean * 0.028 - yawRate * 0.018, -0.05, 0.05);
-  const targetYaw = THREE.MathUtils.clamp(steeringLean * 0.018, -0.025, 0.025);
-  camera.position.x = THREE.MathUtils.lerp(camera.position.x, steeringLean * 0.035, 0.04);
+  const targetRoll = THREE.MathUtils.clamp(
+    -steeringLean * 0.028 - yawRate * 0.018,
+    -0.05,
+    0.05,
+  );
+  camera.position.x = THREE.MathUtils.lerp(camera.position.x, 0, 0.12);
   camera.position.y = 1.48 + roadPulse;
-  camera.rotation.y = THREE.MathUtils.lerp(camera.rotation.y, targetYaw, 0.045);
+  camera.rotation.x = -0.035;
+  camera.rotation.y = 0;
   camera.rotation.z = THREE.MathUtils.lerp(camera.rotation.z, targetRoll, 0.045);
   camera.fov = THREE.MathUtils.lerp(camera.fov, 72 + speedFactor * 6, 0.035);
   camera.updateProjectionMatrix();

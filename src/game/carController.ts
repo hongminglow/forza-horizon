@@ -14,19 +14,19 @@ import {
   type WorldCollisionMap,
 } from "./collisions";
 
-const MAX_FORWARD_SPEED = 42;
-const MAX_REVERSE_SPEED = -10;
-const ENGINE_ACCELERATION = 27;
-const BRAKING = 34;
-const REVERSE_ACCELERATION = 13;
-const ROLLING_RESISTANCE = 2.7;
-const AERO_DRAG = 0.014;
-const MAX_STEER_ANGLE = 0.44;
-const STEER_RESPONSE = 5.6;
-const STEER_RETURN_RESPONSE = 8.8;
-const MAX_TURN_RATE = 2.35;
-const YAW_RESPONSE = 8.4;
-const YAW_DAMPING = 2.4;
+const MAX_FORWARD_SPEED = 18;
+const MAX_REVERSE_SPEED = -6;
+const ACCELERATION = 12;
+const BRAKING_FORCE = 18;
+const REVERSE_ACCELERATION = 12;
+const DAMPING_PER_60FPS_FRAME = 0.97;
+const REVERSE_THRESHOLD = 0.1;
+const MAX_STEER_ANGLE = 0.46;
+const STEERING_EASE_SPEED = 5;
+const STEERING_RETURN_SPEED = 7.5;
+const TURN_SPEED = 1.8;
+const REFERENCE_SPEED = 8;
+const YAW_RATE_EASE_SPEED = 8;
 const CAR_COLLISION_RADIUS = 0.9;
 const TARGET_LAPS = 3;
 const TRACK_LIMIT = TRACK_WIDTH * 0.5 - 0.72;
@@ -88,16 +88,16 @@ export class CarController {
     this.reset(startTime);
   }
 
-  update(input: DriveInput, fixedDelta: number, now: number): CarHudState {
+  update(input: DriveInput, delta: number, now: number): CarHudState {
     if (input.resetPressed) {
       this.reset(now);
     }
 
     if (!this.finished) {
-      this.applyDriving(input, fixedDelta);
+      this.applyDriving(input, delta);
       this.updateRaceProgress(now);
     } else {
-      this.applyFinishCoast(fixedDelta);
+      this.applyFinishCoast(delta);
     }
 
     this.syncPhysicsBody();
@@ -191,7 +191,7 @@ export class CarController {
     this.body.setNextKinematicRotation(yawQuaternion(this.yaw));
   }
 
-  private applyDriving(input: DriveInput, fixedDelta: number): void {
+  private applyDriving(input: DriveInput, delta: number): void {
     this.lastCollision = null;
     const nearest = findNearestTrackSample(this.samples, this.position);
     const lateralOffset = this.position
@@ -204,82 +204,73 @@ export class CarController {
       1,
     );
     const surfaceGrip = THREE.MathUtils.clamp(1 - edgePressure * 0.34, 0.66, 1);
-    const absSpeed = Math.abs(this.speed);
-
-    let acceleration = 0;
+    let nextSpeed = this.speed;
 
     if (input.throttle > 0) {
-      const speedFalloff = THREE.MathUtils.clamp(
-        1 - absSpeed / MAX_FORWARD_SPEED,
-        0.26,
-        1,
-      );
-      acceleration += ENGINE_ACCELERATION * speedFalloff * surfaceGrip;
+      nextSpeed += ACCELERATION * surfaceGrip * delta;
     }
 
     if (input.brake > 0) {
-      if (this.speed > 1.4) {
-        acceleration -= BRAKING;
+      if (this.speed > REVERSE_THRESHOLD) {
+        nextSpeed = Math.max(0, nextSpeed - BRAKING_FORCE * delta);
       } else {
-        acceleration -= REVERSE_ACCELERATION;
+        nextSpeed -= REVERSE_ACCELERATION * delta;
       }
     }
 
     if (input.throttle === 0 && input.brake === 0) {
-      acceleration -=
-        Math.sign(this.speed) *
-        Math.min(absSpeed / fixedDelta, ROLLING_RESISTANCE);
+      nextSpeed *= Math.pow(DAMPING_PER_60FPS_FRAME, delta * 60);
+
+      if (Math.abs(nextSpeed) < 0.025) {
+        nextSpeed = 0;
+      }
     }
 
-    acceleration -= this.speed * absSpeed * AERO_DRAG;
     this.speed = THREE.MathUtils.clamp(
-      this.speed + acceleration * fixedDelta,
+      nextSpeed,
       MAX_REVERSE_SPEED,
       MAX_FORWARD_SPEED,
     );
 
-    const highSpeedSteerScale = THREE.MathUtils.lerp(
-      1,
-      0.58,
-      THREE.MathUtils.clamp(absSpeed / MAX_FORWARD_SPEED, 0, 1),
-    );
-    const targetSteering = input.steer * MAX_STEER_ANGLE * highSpeedSteerScale;
-    const steerResponse = input.steer === 0 ? STEER_RETURN_RESPONSE : STEER_RESPONSE;
+    const targetSteering = input.steer * MAX_STEER_ANGLE;
+    const steerResponse =
+      input.steer === 0 ? STEERING_RETURN_SPEED : STEERING_EASE_SPEED;
     this.steeringAngle = damp(
       this.steeringAngle,
       targetSteering,
       steerResponse * surfaceGrip,
-      fixedDelta,
+      delta,
     );
 
-    const signedSpeedRatio = THREE.MathUtils.clamp(
-      this.speed / MAX_FORWARD_SPEED,
+    const speedSign =
+      Math.abs(this.speed) > REVERSE_THRESHOLD ? Math.sign(this.speed) : 0;
+    const turnAuthority = THREE.MathUtils.clamp(
+      Math.abs(this.speed) / REFERENCE_SPEED,
+      0,
+      1,
+    );
+    const steeringRatio = THREE.MathUtils.clamp(
+      this.steeringAngle / MAX_STEER_ANGLE,
       -1,
       1,
     );
     const targetYawRate =
-      input.steer *
-      MAX_TURN_RATE *
-      signedSpeedRatio *
-      highSpeedSteerScale *
+      steeringRatio *
+      TURN_SPEED *
+      speedSign *
+      turnAuthority *
       surfaceGrip;
-    this.yawRate = damp(
-      this.yawRate,
-      targetYawRate,
-      input.steer === 0 ? YAW_RESPONSE * 1.4 : YAW_RESPONSE,
-      fixedDelta,
-    );
-    this.yawRate *= Math.exp(-YAW_DAMPING * fixedDelta * (input.steer === 0 ? 1 : 0.35));
-    this.yaw = normalizeAngle(this.yaw + this.yawRate * fixedDelta);
+    this.yawRate = damp(this.yawRate, targetYawRate, YAW_RATE_EASE_SPEED, delta);
+    this.yaw = normalizeAngle(this.yaw + this.yawRate * delta);
 
     const nextForward = this.getForward();
     this.velocity.copy(nextForward).multiplyScalar(this.speed);
-    this.position.addScaledVector(this.velocity, fixedDelta);
+    this.position.addScaledVector(this.velocity, delta);
     this.position.y = 0.62;
 
-    this.keepInsideTrack(fixedDelta);
-    this.resolveWorldCollisions(fixedDelta);
-    this.keepInsideTrack(fixedDelta);
+    this.keepInsideTrack(delta);
+    this.resolveWorldCollisions();
+    this.keepInsideTrack(delta);
   }
 
   private keepInsideTrack(fixedDelta: number): void {
@@ -304,27 +295,20 @@ export class CarController {
       this.speed *= drag;
       this.velocity.copy(this.getForward()).multiplyScalar(this.speed);
       this.yawRate *= THREE.MathUtils.lerp(0.82, 0.42, outward);
-
-      const tangentSign = nearest.sample.tangent.dot(travelDirection) >= 0 ? 1 : -1;
-      const tangent = nearest.sample.tangent.clone().multiplyScalar(tangentSign);
-      this.rotateTowardTravelDirection(tangent, fixedDelta, 1.35 * outward);
     }
   }
 
-  private resolveWorldCollisions(fixedDelta: number): void {
+  private resolveWorldCollisions(): void {
     for (const collider of this.collisions.circles) {
-      this.resolveCircleCollision(collider, fixedDelta);
+      this.resolveCircleCollision(collider);
     }
 
     for (const collider of this.collisions.segments) {
-      this.resolveSegmentCollision(collider, fixedDelta);
+      this.resolveSegmentCollision(collider);
     }
   }
 
-  private resolveCircleCollision(
-    collider: CircleCollider,
-    fixedDelta: number,
-  ): void {
+  private resolveCircleCollision(collider: CircleCollider): void {
     const combinedRadius = collider.radius + CAR_COLLISION_RADIUS;
     const dx = this.position.x - collider.center.x;
     const dz = this.position.z - collider.center.z;
@@ -344,13 +328,10 @@ export class CarController {
     const penetration = combinedRadius - distance;
     this.position.addScaledVector(normal, penetration + 0.006);
     this.lastCollision = collider.kind;
-    this.applyCollisionImpulse(normal, false, fixedDelta);
+    this.applyCollisionImpulse(normal, false);
   }
 
-  private resolveSegmentCollision(
-    collider: SegmentCollider,
-    fixedDelta: number,
-  ): void {
+  private resolveSegmentCollision(collider: SegmentCollider): void {
     const closest = closestPointOnSegment2D(this.position, collider.start, collider.end);
     const combinedRadius = collider.radius + CAR_COLLISION_RADIUS;
     const dx = this.position.x - closest.x;
@@ -371,14 +352,10 @@ export class CarController {
     const penetration = combinedRadius - distance;
     this.position.addScaledVector(normal, penetration + 0.006);
     this.lastCollision = collider.kind;
-    this.applyCollisionImpulse(normal, true, fixedDelta);
+    this.applyCollisionImpulse(normal, true);
   }
 
-  private applyCollisionImpulse(
-    normal: THREE.Vector3,
-    slideFriendly: boolean,
-    fixedDelta: number,
-  ): void {
+  private applyCollisionImpulse(normal: THREE.Vector3, slideFriendly: boolean): void {
     const absSpeed = Math.abs(this.speed);
 
     if (absSpeed <= 0.02) {
@@ -403,15 +380,6 @@ export class CarController {
     this.speed *= retainedSpeed;
     this.velocity.copy(this.getForward()).multiplyScalar(this.speed);
     this.yawRate *= THREE.MathUtils.lerp(0.82, 0.34, closing);
-
-    const tangent = new THREE.Vector3(-normal.z, 0, normal.x);
-    const tangentDot = tangent.dot(travelDirection);
-
-    if (Math.abs(tangentDot) > 0.06) {
-      const slideDirection = tangent.multiplyScalar(tangentDot >= 0 ? 1 : -1);
-      const authority = (slideFriendly ? 1.65 : 0.92) * closing;
-      this.rotateTowardTravelDirection(slideDirection, fixedDelta, authority);
-    }
   }
 
   private getForward(): THREE.Vector3 {
@@ -428,24 +396,6 @@ export class CarController {
 
   private getTravelDirection(): THREE.Vector3 {
     return this.getForward().multiplyScalar(this.speed < 0 ? -1 : 1);
-  }
-
-  private rotateTowardTravelDirection(
-    travelDirection: THREE.Vector3,
-    fixedDelta: number,
-    authority: number,
-  ): void {
-    const desiredForward = travelDirection
-      .clone()
-      .multiplyScalar(this.speed < 0 ? -1 : 1)
-      .normalize();
-
-    if (desiredForward.lengthSq() <= 0.0001) {
-      return;
-    }
-
-    const targetYaw = yawFromDirection(desiredForward);
-    this.yaw = rotateAngleToward(this.yaw, targetYaw, fixedDelta * authority);
   }
 
   private updateRaceProgress(now: number): void {
@@ -499,7 +449,7 @@ export class CarController {
     this.velocity.copy(this.getForward()).multiplyScalar(this.speed);
     this.position.addScaledVector(this.velocity, fixedDelta);
     this.keepInsideTrack(fixedDelta);
-    this.resolveWorldCollisions(fixedDelta);
+    this.resolveWorldCollisions();
   }
 
   private syncPhysicsBody(): void {
@@ -524,20 +474,6 @@ function damp(current: number, target: number, response: number, delta: number):
   return THREE.MathUtils.lerp(current, target, 1 - Math.exp(-response * delta));
 }
 
-function yawFromDirection(direction: THREE.Vector3): number {
-  return Math.atan2(direction.x, -direction.z);
-}
-
 function normalizeAngle(angle: number): number {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
-}
-
-function rotateAngleToward(current: number, target: number, maxDelta: number): number {
-  const delta = normalizeAngle(target - current);
-
-  if (Math.abs(delta) <= maxDelta) {
-    return normalizeAngle(target);
-  }
-
-  return normalizeAngle(current + Math.sign(delta) * maxDelta);
 }

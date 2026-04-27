@@ -152,5 +152,5 @@ export function yawFromTangent(tangent: THREE.Vector3): number {
 }
 
 export function yawQuaternion(yaw: number): THREE.Quaternion {
-  return new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -yaw, 0));
 }

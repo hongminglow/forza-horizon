@@ -20,7 +20,7 @@ The intended feel is closer to a lightweight rally prototype than an arcade char
 
 ## Game Mechanics
 
-The car uses a custom fixed-step vehicle controller layered over a Rapier physics world. Instead of moving the car directly left or right, WASD input is interpreted as driving controls:
+The car uses a custom vehicle controller layered over a Rapier physics world with capped real delta time. Instead of moving the car directly left or right, WASD input is interpreted as driving controls:
 
 - `W` applies engine acceleration along the car body.
 - `S` applies braking force, then reverse acceleration.
