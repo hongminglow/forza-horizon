@@ -14,6 +14,7 @@ import {
 import { createCarBody, createPhysicsWorld } from "./physics/world";
 import { createCarRig, updateCarRigSteering } from "./render/carModel";
 import { buildJungleTrack } from "./render/jungle";
+import { createGameMenu } from "./ui/gameMenu";
 
 async function bootstrap(): Promise<void> {
   const runtimeWindow = window as Window & {
@@ -61,21 +62,45 @@ async function bootstrap(): Promise<void> {
   const input = new InputController();
   const hud = createHud();
   const clock = new THREE.Clock();
+  let latestHud = carController.getHudState(performance.now() / 1000);
+  let lastCollisionSerial = latestHud.collisionSerial;
+  const gameMenu = createGameMenu({
+    onPauseChange(paused) {
+      if (paused) {
+        input.clear();
+      }
+    },
+    onReplay() {
+      const now = performance.now() / 1000;
+      carController.restart(now);
+      latestHud = carController.getHudState(now);
+      lastCollisionSerial = latestHud.collisionSerial;
+      input.clear();
+    },
+  });
 
   setupLighting(scene);
   const cleanupResize = setupResize(camera, renderer);
   const cleanupContextRecovery = setupContextRecovery(renderer);
 
-  let latestHud = carController.getHudState(performance.now() / 1000);
-
   renderer.setAnimationLoop((time) => {
     const delta = Math.min(clock.getDelta(), 0.05);
     const now = time / 1000;
-    const driveInput = input.read();
 
-    physics.world.timestep = delta;
-    latestHud = carController.update(driveInput, delta, now);
-    physics.world.step();
+    if (gameMenu.isPaused()) {
+      input.clear();
+    } else {
+      const driveInput = input.read();
+      physics.world.timestep = delta;
+      latestHud = carController.update(driveInput, delta, now);
+      physics.world.step();
+
+      if (latestHud.collisionSerial !== lastCollisionSerial) {
+        gameMenu.playCrash(latestHud.collisionImpact);
+        lastCollisionSerial = latestHud.collisionSerial;
+      }
+    }
+
     carController.syncObject(carRig);
     updateCarRigSteering(carRig, carController.getSteeringAngle());
     updateCameraFeel(
@@ -86,12 +111,14 @@ async function bootstrap(): Promise<void> {
       carController.getYawRate(),
     );
     hud.update(latestHud);
+    gameMenu.update(latestHud);
     renderer.render(scene, camera);
   });
 
   const cleanup = (): void => {
     renderer.setAnimationLoop(null);
     input.destroy();
+    gameMenu.destroy();
     cleanupResize();
     cleanupContextRecovery();
     renderer.dispose();

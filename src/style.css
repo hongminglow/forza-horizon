@@ -1,4 +1,10 @@
 :root {
+  --ui-ink: #f6f1de;
+  --ui-muted: rgba(246, 241, 222, 0.68);
+  --ui-panel: rgba(8, 18, 13, 0.72);
+  --ui-border: rgba(246, 241, 222, 0.18);
+  --ui-accent: #f2c84b;
+  --ui-danger: #c43e24;
   color: #f6f1de;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -41,9 +47,9 @@ canvas {
 .hud-panel {
   min-width: 140px;
   padding: 12px 14px 11px;
-  border: 1px solid rgba(246, 241, 222, 0.18);
+  border: 1px solid var(--ui-border);
   border-radius: 8px;
-  background: rgba(8, 18, 13, 0.68);
+  background: var(--ui-panel);
   box-shadow: 0 14px 44px rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(14px);
 }
@@ -59,7 +65,7 @@ canvas {
 .hud-panel span,
 .hud-panel small {
   display: block;
-  color: rgba(246, 241, 222, 0.68);
+  color: var(--ui-muted);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -81,6 +87,192 @@ canvas {
   font-size: 10px;
 }
 
+.menu-button {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 5;
+  min-width: 74px;
+  min-height: 40px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  color: var(--ui-ink);
+  background: rgba(8, 18, 13, 0.62);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.menu-button:hover,
+.menu-button:focus-visible,
+.icon-button:hover,
+.icon-button:focus-visible,
+.resume-button:hover,
+.resume-button:focus-visible {
+  outline: none;
+  border-color: rgba(242, 200, 75, 0.82);
+  box-shadow: 0 0 0 3px rgba(242, 200, 75, 0.2);
+}
+
+.game-menu,
+.race-summary {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background:
+    linear-gradient(rgba(4, 9, 6, 0.34), rgba(4, 9, 6, 0.72));
+  backdrop-filter: blur(8px);
+}
+
+.race-summary {
+  z-index: 9;
+  align-items: center;
+  justify-items: center;
+  background: linear-gradient(rgba(4, 9, 6, 0.12), rgba(4, 9, 6, 0.6));
+}
+
+.game-menu[hidden],
+.race-summary[hidden] {
+  display: none;
+}
+
+.menu-panel,
+.summary-panel {
+  width: min(440px, 100%);
+  border: 1px solid rgba(246, 241, 222, 0.2);
+  border-radius: 8px;
+  background: rgba(8, 18, 13, 0.88);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.42);
+  padding: 20px;
+}
+
+.summary-panel {
+  width: min(480px, calc(100vw - 32px));
+  text-align: center;
+}
+
+.menu-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.menu-header span,
+.menu-stats span,
+.summary-panel > span,
+.summary-grid span,
+.setting-row span {
+  color: var(--ui-muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.menu-header h1 {
+  margin: 5px 0 0;
+  color: #fff7cf;
+  font-size: 25px;
+  line-height: 1.1;
+}
+
+.summary-panel h2 {
+  margin: 7px 0 18px;
+  color: #fff7cf;
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.icon-button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  color: var(--ui-ink);
+  background: rgba(246, 241, 222, 0.08);
+  cursor: pointer;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.menu-stats,
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.menu-stats div,
+.summary-grid div {
+  border: 1px solid rgba(246, 241, 222, 0.12);
+  border-radius: 8px;
+  background: rgba(246, 241, 222, 0.06);
+  padding: 10px;
+}
+
+.menu-stats strong,
+.summary-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff7cf;
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.settings-list {
+  display: grid;
+  gap: 10px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  gap: 16px;
+  border: 1px solid rgba(246, 241, 222, 0.12);
+  border-radius: 8px;
+  background: rgba(246, 241, 222, 0.055);
+  padding: 10px 12px;
+}
+
+.setting-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--ui-accent);
+}
+
+.volume-row {
+  align-items: center;
+}
+
+.volume-row input {
+  width: min(230px, 56vw);
+  accent-color: var(--ui-accent);
+}
+
+.resume-button {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 16px;
+  border: 1px solid rgba(242, 200, 75, 0.58);
+  border-radius: 8px;
+  color: #15120d;
+  background: var(--ui-accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}
+
 @media (max-width: 720px) {
   #hud {
     left: 10px;
@@ -100,5 +292,43 @@ canvas {
 
   .hud-panel strong {
     font-size: 21px;
+  }
+
+  .menu-button {
+    top: 10px;
+    right: 10px;
+    min-width: 68px;
+  }
+
+  .game-menu {
+    padding: 12px;
+  }
+
+  .menu-panel {
+    padding: 16px;
+  }
+
+  .menu-header h1 {
+    font-size: 21px;
+  }
+
+  .menu-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-panel h2 {
+    font-size: 24px;
+  }
+
+  .volume-row {
+    display: grid;
+  }
+
+  .volume-row input {
+    width: 100%;
   }
 }

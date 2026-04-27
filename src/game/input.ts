@@ -38,6 +38,11 @@ export class InputController {
     this.target.removeEventListener("blur", this.handleBlur);
   }
 
+  clear(): void {
+    this.keys.clear();
+    this.resetLatch = false;
+  }
+
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
     const code = normalizeDriveCode(event);
 

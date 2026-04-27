@@ -27,13 +27,16 @@ export function buildJungleTrack(
   createRoad(scene, samples, materials);
   createFinishLine(scene, samples, materials);
 
-  const leftSegments = createBoundarySegments(samples, "left", 5);
-  const rightSegments = createBoundarySegments(samples, "right", 5);
+  const leftSegments = createBoundarySegments(samples, "left", 2);
+  const rightSegments = createBoundarySegments(samples, "right", 2);
   createBoundaryLogs(scene, leftSegments, samples, materials, collisions);
   createBoundaryLogs(scene, rightSegments, samples, materials, collisions);
+  createProtectedEdgePosts(scene, samples, materials, collisions);
+  createFinishApproachChevrons(scene, samples);
   createBarrierColliders(world, Rapier, leftSegments);
   createBarrierColliders(world, Rapier, rightSegments);
 
+  createTrackObstacles(scene, samples, materials, collisions);
   createJungleCanopy(scene, samples, materials, collisions);
   createUndergrowth(scene, samples, materials);
   createRocks(scene, samples, materials, collisions);
@@ -149,21 +152,15 @@ function createFinishLine(
 ): void {
   const start = samples[0];
   const tangentYaw = Math.atan2(start.tangent.x, start.tangent.z);
-  const stripeGeometry = new THREE.BoxGeometry(TRACK_WIDTH, 0.05, 1.2);
-
-  for (let index = 0; index < 8; index += 1) {
-    const stripe = new THREE.Mesh(
-      stripeGeometry,
-      index % 2 === 0 ? materials.finishLight : materials.finishDark,
-    );
-    stripe.position.copy(start.center);
-    stripe.position.y = 0.12 + index * 0.002;
-    stripe.position.addScaledVector(start.tangent, (index - 3.5) * 0.32);
-    stripe.rotation.y = tangentYaw;
-    stripe.scale.x = 0.125;
-    stripe.receiveShadow = true;
-    scene.add(stripe);
-  }
+  const finishLine = new THREE.Mesh(
+    new THREE.BoxGeometry(TRACK_WIDTH, 0.055, 2.8),
+    createFinishLineMaterial(materials),
+  );
+  finishLine.position.copy(start.center);
+  finishLine.position.y = 0.13;
+  finishLine.rotation.y = tangentYaw;
+  finishLine.receiveShadow = true;
+  scene.add(finishLine);
 
   const postGeometry = new THREE.CylinderGeometry(0.22, 0.3, 4.1, 12);
 
@@ -178,6 +175,60 @@ function createFinishLine(
   }
 }
 
+function createTrackObstacles(
+  scene: THREE.Scene,
+  samples: TrackSample[],
+  materials: JungleMaterials,
+  collisions: WorldCollisionMap,
+): void {
+  const obstacleLayout = [
+    [0.085, -2.8, 1.08],
+    [0.14, 2.6, 0.92],
+    [0.19, 0.4, 1.2],
+    [0.255, -3.15, 1.02],
+    [0.315, 2.25, 1.18],
+    [0.39, -1.4, 0.96],
+    [0.465, 3.1, 1.1],
+    [0.535, -2.45, 1.26],
+    [0.61, 1.1, 0.98],
+    [0.68, -3, 1.16],
+    [0.745, 2.8, 1.04],
+    [0.81, -0.8, 1.2],
+    [0.885, 2.35, 1],
+  ] as const;
+  const geometry = new THREE.DodecahedronGeometry(1, 1);
+  const rocks = new THREE.InstancedMesh(geometry, materials.rock, obstacleLayout.length);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+
+  obstacleLayout.forEach(([progress, offset, scale], index) => {
+    const sample = samples[Math.floor(progress * (samples.length - 1))];
+    const position = sample.center
+      .clone()
+      .addScaledVector(sample.normal, offset)
+      .addScaledVector(sample.tangent, index % 2 === 0 ? 0.85 : -0.65);
+    const visualScale = new THREE.Vector3(scale * 1.35, scale * 0.72, scale * 1.05);
+    quaternion.setFromEuler(
+      new THREE.Euler(index * 0.73, index * 1.11, index * 0.39),
+    );
+    matrix.compose(
+      new THREE.Vector3(position.x, scale * 0.52, position.z),
+      quaternion,
+      visualScale,
+    );
+    rocks.setMatrixAt(index, matrix);
+    collisions.circles.push({
+      center: new THREE.Vector3(position.x, 0, position.z),
+      radius: scale * 1.34,
+      kind: "rock",
+    });
+  });
+
+  rocks.castShadow = true;
+  rocks.receiveShadow = true;
+  scene.add(rocks);
+}
+
 function createBoundaryLogs(
   scene: THREE.Scene,
   segments: BoundarySegment[],
@@ -185,7 +236,7 @@ function createBoundaryLogs(
   materials: JungleMaterials,
   collisions: WorldCollisionMap,
 ): void {
-  const geometry = new THREE.CylinderGeometry(0.34, 0.42, 1, 12);
+  const geometry = new THREE.CylinderGeometry(0.42, 0.5, 1, 12);
   const up = new THREE.Vector3(0, 1, 0);
 
   for (const segment of segments) {
@@ -203,9 +254,100 @@ function createBoundaryLogs(
     collisions.segments.push({
       start: segment.center.clone().addScaledVector(segment.direction, -segment.length * 0.5),
       end: segment.center.clone().addScaledVector(segment.direction, segment.length * 0.5),
-      radius: 0.32,
+      radius: 0.72,
       kind: "log",
     });
+  }
+}
+
+function createProtectedEdgePosts(
+  scene: THREE.Scene,
+  samples: TrackSample[],
+  materials: JungleMaterials,
+  collisions: WorldCollisionMap,
+): void {
+  const stride = 6;
+  const sides = [-1, 1] as const;
+  const postCount = Math.ceil(samples.length / stride) * sides.length;
+  const postGeometry = new THREE.CylinderGeometry(0.16, 0.22, 1.35, 10);
+  const ropeGeometry = new THREE.BoxGeometry(0.14, 0.14, 1);
+  const posts = new THREE.InstancedMesh(postGeometry, materials.post, postCount);
+  const ropes = new THREE.InstancedMesh(ropeGeometry, materials.log, postCount);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3();
+  let instance = 0;
+
+  for (let index = 0; index < samples.length - stride; index += stride) {
+    const sample = samples[index];
+    const nextSample = samples[index + stride];
+    const edgeDirection = nextSample.center.clone().sub(sample.center).setY(0).normalize();
+
+    for (const side of sides) {
+      const edgePosition = sample.center
+        .clone()
+        .addScaledVector(sample.normal, side * (TRACK_WIDTH * 0.5 + 0.55));
+      edgePosition.y = 0.72;
+      matrix.compose(edgePosition, quaternion.identity(), new THREE.Vector3(1, 1, 1));
+      posts.setMatrixAt(instance, matrix);
+
+      const nextEdgePosition = nextSample.center
+        .clone()
+        .addScaledVector(nextSample.normal, side * (TRACK_WIDTH * 0.5 + 0.55));
+      const ropeCenter = edgePosition.clone().add(nextEdgePosition).multiplyScalar(0.5);
+      const ropeLength = edgePosition.distanceTo(nextEdgePosition);
+      quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), edgeDirection);
+      scale.set(1, 1, ropeLength);
+      matrix.compose(new THREE.Vector3(ropeCenter.x, 1.18, ropeCenter.z), quaternion, scale);
+      ropes.setMatrixAt(instance, matrix);
+
+      collisions.circles.push({
+        center: new THREE.Vector3(edgePosition.x, 0, edgePosition.z),
+        radius: 0.72,
+        kind: "post",
+      });
+      collisions.segments.push({
+        start: new THREE.Vector3(edgePosition.x, 0, edgePosition.z),
+        end: new THREE.Vector3(nextEdgePosition.x, 0, nextEdgePosition.z),
+        radius: 0.55,
+        kind: "log",
+      });
+      instance += 1;
+    }
+  }
+
+  posts.count = instance;
+  ropes.count = instance;
+  posts.castShadow = true;
+  ropes.castShadow = true;
+  posts.receiveShadow = true;
+  ropes.receiveShadow = true;
+  scene.add(posts, ropes);
+}
+
+function createFinishApproachChevrons(
+  scene: THREE.Scene,
+  samples: TrackSample[],
+): void {
+  const boardMaterial = createChevronBoardMaterial();
+  const boardGeometry = new THREE.BoxGeometry(2.4, 1.08, 0.12);
+  const progressMarks = [0.84, 0.875, 0.91, 0.945, 0.98];
+
+  for (const progress of progressMarks) {
+    const sample = samples[Math.floor(progress * (samples.length - 1))];
+
+    for (const side of [-1, 1] as const) {
+      const board = new THREE.Mesh(boardGeometry, boardMaterial);
+      board.position
+        .copy(sample.center)
+        .addScaledVector(sample.normal, side * (TRACK_WIDTH * 0.5 + 1.05));
+      board.position.y = 1.18;
+      board.lookAt(sample.center.x, 1.18, sample.center.z);
+      board.rotation.z = side > 0 ? -0.04 : 0.04;
+      board.castShadow = true;
+      board.receiveShadow = true;
+      scene.add(board);
+    }
   }
 }
 
@@ -468,6 +610,83 @@ function createRocks(
   rocks.castShadow = true;
   rocks.receiveShadow = true;
   scene.add(rocks);
+}
+
+function createChevronBoardMaterial(): THREE.MeshStandardMaterial {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("Unable to create chevron texture canvas");
+  }
+
+  ctx.fillStyle = "#f2c84b";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#18140b";
+  ctx.fillRect(0, 0, canvas.width, 12);
+  ctx.fillRect(0, canvas.height - 12, canvas.width, 12);
+
+  for (let x = -34; x < canvas.width + 34; x += 56) {
+    ctx.beginPath();
+    ctx.moveTo(x, 18);
+    ctx.lineTo(x + 42, canvas.height * 0.5);
+    ctx.lineTo(x, canvas.height - 18);
+    ctx.lineTo(x + 25, canvas.height - 18);
+    ctx.lineTo(x + 68, canvas.height * 0.5);
+    ctx.lineTo(x + 25, 18);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+
+  return new THREE.MeshStandardMaterial({
+    map: texture,
+    color: "#ffffff",
+    roughness: 0.44,
+    metalness: 0.04,
+  });
+}
+
+function createFinishLineMaterial(materials: JungleMaterials): THREE.MeshStandardMaterial {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("Unable to create finish line texture canvas");
+  }
+
+  const cellsX = 16;
+  const cellsY = 4;
+  const cellWidth = canvas.width / cellsX;
+  const cellHeight = canvas.height / cellsY;
+
+  for (let y = 0; y < cellsY; y += 1) {
+    for (let x = 0; x < cellsX; x += 1) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? "#efe1ba" : "#15120d";
+      ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+
+  return new THREE.MeshStandardMaterial({
+    map: texture,
+    roughness: 0.68,
+    metalness: 0,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+    color: materials.finishLight.color,
+  });
 }
 
 function hasTrackClearance(

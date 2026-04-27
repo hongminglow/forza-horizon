@@ -44,6 +44,9 @@ export type CarHudState = {
   finished: boolean;
   progress: number;
   offTrackAmount: number;
+  collisionSerial: number;
+  collisionImpact: number;
+  collisionKind: string | null;
 };
 
 export type CarDebugState = {
@@ -59,6 +62,7 @@ export type CarDebugState = {
   collisionCircles: number;
   collisionSegments: number;
   lastCollision: string | null;
+  collisionSerial: number;
 };
 
 export class CarController {
@@ -77,6 +81,8 @@ export class CarController {
   private bestLapTime: number | null = null;
   private finished = false;
   private lastCollision: string | null = null;
+  private collisionSerial = 0;
+  private collisionImpact = 0;
 
   constructor(
     private readonly body: RAPIER.RigidBody,
@@ -140,6 +146,7 @@ export class CarController {
       collisionCircles: this.collisions.circles.length,
       collisionSegments: this.collisions.segments.length,
       lastCollision: this.lastCollision,
+      collisionSerial: this.collisionSerial,
     };
   }
 
@@ -156,7 +163,14 @@ export class CarController {
       finished: this.finished,
       progress: this.currentProgress,
       offTrackAmount: Math.max(0, nearest.distance - TRACK_LIMIT),
+      collisionSerial: this.collisionSerial,
+      collisionImpact: this.collisionImpact,
+      collisionKind: this.lastCollision,
     };
+  }
+
+  restart(now: number): void {
+    this.reset(now);
   }
 
   private reset(now: number): void {
@@ -169,6 +183,7 @@ export class CarController {
     this.speed = 0;
     this.steeringAngle = 0;
     this.yawRate = 0;
+    this.collisionImpact = 0;
     this.currentProgress = start.progress;
     this.previousProgress = start.progress;
     this.checkpointMask = 0;
@@ -369,6 +384,13 @@ export class CarController {
       this.speed *= 0.985;
       this.velocity.copy(this.getForward()).multiplyScalar(this.speed);
       return;
+    }
+
+    const impact = absSpeed * closing;
+
+    if (impact > 1.15) {
+      this.collisionSerial += 1;
+      this.collisionImpact = THREE.MathUtils.clamp(impact / 12, 0.2, 1);
     }
 
     const directHitLoss = slideFriendly ? 0.38 : 0.18;

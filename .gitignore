@@ -7,6 +7,7 @@ dist/
 .codex-browser-profile/
 .codex-screenshots/
 .codex-vite.log
+.codex-vite.out.log
 .codex-vite.err.log
 
 playtest-*.png

@@ -54,6 +54,10 @@ export function createJungleMaterials(): JungleMaterials {
       metalness: 0,
       transparent: true,
       opacity: 0.58,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
     }),
     wetMud: new THREE.MeshStandardMaterial({
       color: "#24170f",
@@ -61,6 +65,10 @@ export function createJungleMaterials(): JungleMaterials {
       metalness: 0.02,
       transparent: true,
       opacity: 0.62,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
     }),
     bark: new THREE.MeshStandardMaterial({
       map: barkMap,

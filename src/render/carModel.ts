@@ -9,11 +9,6 @@ export function createCarRig(camera: THREE.PerspectiveCamera): THREE.Group {
   const rig = new THREE.Group();
   rig.name = "CarRig";
 
-  const paint = new THREE.MeshStandardMaterial({
-    color: "#c43e24",
-    roughness: 0.46,
-    metalness: 0.18,
-  });
   const darkPaint = new THREE.MeshStandardMaterial({
     color: "#261f19",
     roughness: 0.62,
@@ -30,23 +25,6 @@ export function createCarRig(camera: THREE.PerspectiveCamera): THREE.Group {
     transparent: true,
     opacity: 0.18,
   });
-  const glow = new THREE.MeshStandardMaterial({
-    color: "#ffd36d",
-    emissive: "#c26b22",
-    emissiveIntensity: 0.35,
-    roughness: 0.3,
-  });
-
-  const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.5, 4.0), paint);
-  chassis.position.set(0, 0.28, 0);
-  chassis.castShadow = true;
-  rig.add(chassis);
-
-  const hood = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.24, 1.75), paint);
-  hood.position.set(0, 0.62, -1.1);
-  hood.castShadow = true;
-  rig.add(hood);
-
   const dash = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.18, 0.28), darkPaint);
   dash.position.set(0, 0.86, -0.18);
   rig.add(dash);
@@ -62,7 +40,7 @@ export function createCarRig(camera: THREE.PerspectiveCamera): THREE.Group {
   wheel.rotation.x = Math.PI * 0.5;
   rig.add(wheel);
 
-  const wheelHub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 16), glow);
+  const wheelHub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 16), darkPaint);
   wheelHub.name = STEERING_HUB;
   wheelHub.position.copy(wheel.position);
   wheelHub.rotation.x = Math.PI * 0.5;

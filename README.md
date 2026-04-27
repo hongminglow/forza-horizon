@@ -17,6 +17,7 @@ The intended feel is closer to a lightweight rally prototype than an arcade char
 - `A`: steer left
 - `D`: steer right
 - `R`: reset the race
+- `Esc`: open or close the pause/settings menu
 
 ## Game Mechanics
 
@@ -30,7 +31,12 @@ The car uses a custom vehicle controller layered over a Rapier physics world wit
 - Reversing uses the same steering angle with inverted yaw response, so `S + D` backs the car to the driver's right and `S + A` backs it to the driver's left.
 - Track edges apply pushback and drag when the car leaves the driveable lane.
 - Logs, rocks, and trees use collision proxies so the car cannot pass through them.
+- Track edges use denser protected barrier logs, posts, and rope rails so the player cannot freely leave the restricted route.
+- On-track rocks have explicit custom collision proxies and slow or stop the car on impact.
 - Lap counting requires forward motion through the full checkpoint sequence before crossing the finish line.
+- Completing the race opens a congratulations summary with total time, best lap, lap count, and replay.
+- The pause/settings menu supports BGM on/off, mute, and volume adjustment.
+- Collision impacts trigger a procedural crash sound effect.
 
 ## Technical Notes
 
@@ -38,7 +44,8 @@ The car uses a custom vehicle controller layered over a Rapier physics world wit
 - Physics: Rapier world for base colliders plus custom vehicle/collision response for deterministic driving feel.
 - Track: Catmull-Rom closed jungle route sampled into road mesh, boundaries, checkpoints, and collision data.
 - Assets: Procedural meshes and generated canvas textures for terrain, road, bark, leaves, rocks, mud, water, and vegetation.
-- UI: Lightweight DOM HUD for speed, lap count, time, and best lap.
+- UI: Lightweight DOM HUD for speed, lap count, time, best lap, and pause/settings.
+- Audio: Procedural Web Audio background music and crash sound effects with player-controlled volume.
 
 ## Scripts
 

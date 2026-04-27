@@ -19,7 +19,13 @@ This document is the shared source of truth for the game. Any future implementat
 - [ ] User review and approval of this master spec.
 - [x] Apply final control fixes strictly from this spec.
 - [x] Re-test parked steering, forward turning, reverse turning, desktop render, and mobile render.
-- [ ] Manual collision/lap playtest pass after user reviews the updated driving feel.
+- [x] Add protected path barriers, edge posts, and finish-approach chevron guidance.
+- [x] Add pause/settings HUD with `Esc`, BGM, mute, and volume controls.
+- [x] Replace overlapping finish-line stripes with one stable checker mesh.
+- [x] Add explicit on-track obstacle collision proxies.
+- [x] Add finish congratulations summary and replay action.
+- [x] Add procedural crash SFX for collision impacts.
+- [ ] Manual collision/lap/menu playtest pass after user reviews the updated game feel.
 
 ## Product Summary
 
@@ -247,6 +253,11 @@ Collision response should:
 - Reduce speed on direct impact.
 - Allow glancing contact to slide along logs/edges without full stop.
 - Never teleport the car across the track.
+- Use dense custom collision-map segments/circles for track boundaries because Rapier static colliders alone do not stop the kinematic car controller.
+- Protect the full track path with visible barrier logs, rope rails, posts, or equivalent blockers so players can read the allowed route.
+- Add extra visual guidance near the final approach to the finish line if the next turn is ambiguous.
+- Any visible on-track rock or obstacle must have a custom collision proxy large enough for the kinematic car controller to hit reliably.
+- Collision impacts should emit a crash sound effect, throttled enough to avoid rapid-fire noise while scraping.
 
 ## Track And Lap Rules
 
@@ -276,6 +287,16 @@ Persistent HUD should stay compact:
 - Best lap or finish panel only when relevant.
 
 The center of the screen must remain clear for driving.
+
+Pause/settings UI rules:
+
+- `Esc` toggles the pause/settings menu.
+- The menu pauses vehicle simulation and clears held drive input.
+- The menu includes BGM on/off, mute, and volume controls.
+- Background music can be procedural Web Audio; no external audio file is required.
+- The pause/settings surface should be DOM-based and should not cover the playfield during normal driving.
+- Race completion opens a congratulations summary with total time, best lap, completed laps, and replay.
+- Replay resets the race state, hides the summary, and clears held drive input.
 
 ## Browser Playtest Acceptance Checks
 
