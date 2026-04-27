@@ -1,4 +1,4 @@
-# Jungle Sprint Racer - Master Game Spec
+# Forza Horizon - Master Game Spec
 
 This document is the shared source of truth for the game. Any future implementation work should follow this spec before changing code.
 
@@ -25,6 +25,10 @@ This document is the shared source of truth for the game. Any future implementat
 - [x] Add explicit on-track obstacle collision proxies.
 - [x] Add finish congratulations summary and replay action.
 - [x] Add procedural crash SFX for collision impacts.
+- [x] Freeze race/lap timers during pause and after finish.
+- [x] Remove cockpit-visible front glass/hood overlays that read like car lights.
+- [x] Move or collide solid-looking roadside vegetation to prevent ghost obstacles.
+- [x] Raise and stabilize road marking meshes to reduce z-fighting/blinking.
 - [ ] Manual collision/lap/menu playtest pass after user reviews the updated game feel.
 
 ## Product Summary
@@ -297,6 +301,7 @@ Pause/settings UI rules:
 - The pause/settings surface should be DOM-based and should not cover the playfield during normal driving.
 - Race completion opens a congratulations summary with total time, best lap, completed laps, and replay.
 - Replay resets the race state, hides the summary, and clears held drive input.
+- Race/lap timers must pause while the settings menu is open and must freeze once the race is finished.
 
 ## Browser Playtest Acceptance Checks
 
@@ -326,12 +331,13 @@ Keep these responsibilities separate:
 When asking an AI agent to continue this game, use this prompt:
 
 ```md
-You are working on Jungle Sprint Racer, a first-person Three.js jungle car racing game.
+You are working on Forza Horizon, a first-person Three.js jungle car racing game.
 
 Follow the vehicle control contract exactly:
+
 - W/S modify signed scalar speed.
 - A/D only modify steering/heading. They must never directly modify position.x or position.z.
-- Movement is always position += forwardFromHeading * signedSpeed * dt.
+- Movement is always position += forwardFromHeading _ signedSpeed _ dt.
 - dt comes from Math.min(clock.getDelta(), 0.05), not a fixed frame assumption.
 - S brakes while speed > 0.1 and reverses only when speed <= 0.1.
 - Parked steering may animate wheels but must not spin or move the car.

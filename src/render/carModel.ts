@@ -18,21 +18,9 @@ export function createCarRig(camera: THREE.PerspectiveCamera): THREE.Group {
     color: "#11100f",
     roughness: 0.78,
   });
-  const glass = new THREE.MeshStandardMaterial({
-    color: "#8fc8b4",
-    roughness: 0.18,
-    metalness: 0,
-    transparent: true,
-    opacity: 0.18,
-  });
   const dash = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.18, 0.28), darkPaint);
   dash.position.set(0, 0.86, -0.18);
   rig.add(dash);
-
-  const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.68, 0.05), glass);
-  windshield.position.set(0, 1.18, -0.68);
-  windshield.rotation.x = -0.28;
-  rig.add(windshield);
 
   const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.026, 10, 22), rubber);
   wheel.name = STEERING_WHEEL;

@@ -7,13 +7,13 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231f5d31'/%3E%3Cpath d='M10 44c8-8 13-8 22 0s14 8 22 0' fill='none' stroke='%23f6d56d' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M18 36h28l5 11H13z' fill='%23c43e24'/%3E%3C/svg%3E"
     />
-    <title>Jungle Sprint Racer</title>
+    <title>Forza Horizon</title>
   </head>
   <body>
     <div id="game"></div>
     <div id="hud" aria-live="polite">
       <div class="hud-panel">
-        <span>Jungle Sprint</span>
+        <span>Forza Horizon</span>
         <strong id="speed">0</strong>
         <small>km/h</small>
       </div>
@@ -30,7 +30,13 @@
         <strong id="best">--</strong>
       </div>
     </div>
-    <button id="menu-button" class="menu-button" type="button" aria-controls="game-menu" aria-expanded="false">
+    <button
+      id="menu-button"
+      class="menu-button"
+      type="button"
+      aria-controls="game-menu"
+      aria-expanded="false"
+    >
       Menu
     </button>
     <div id="game-menu" class="game-menu" hidden>
@@ -38,9 +44,16 @@
         <header class="menu-header">
           <div>
             <span>Paused</span>
-            <h1 id="menu-title">Jungle Sprint Racer</h1>
+            <h1 id="menu-title">Forza Horizon</h1>
           </div>
-          <button id="menu-close" class="icon-button" type="button" aria-label="Close menu">x</button>
+          <button
+            id="menu-close"
+            class="icon-button"
+            type="button"
+            aria-label="Close menu"
+          >
+            x
+          </button>
         </header>
         <div class="menu-stats">
           <div>
@@ -67,14 +80,28 @@
           </label>
           <label class="setting-row volume-row" for="volume-control">
             <span>Volume</span>
-            <input id="volume-control" type="range" min="0" max="1" step="0.01" value="0.45" />
+            <input
+              id="volume-control"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value="0.45"
+            />
           </label>
         </div>
-        <button id="menu-resume" class="resume-button" type="button">Resume</button>
+        <button id="menu-resume" class="resume-button" type="button">
+          Resume
+        </button>
       </section>
     </div>
     <div id="race-summary" class="race-summary" hidden>
-      <section class="summary-panel" role="dialog" aria-labelledby="summary-title" aria-live="polite">
+      <section
+        class="summary-panel"
+        role="dialog"
+        aria-labelledby="summary-title"
+        aria-live="polite"
+      >
         <span>Race Complete</span>
         <h2 id="summary-title">Congratulations</h2>
         <div class="summary-grid">
@@ -91,7 +118,9 @@
             <strong id="summary-laps">3/3</strong>
           </div>
         </div>
-        <button id="summary-replay" class="resume-button" type="button">Replay</button>
+        <button id="summary-replay" class="resume-button" type="button">
+          Replay
+        </button>
       </section>
     </div>
     <script type="module" src="/src/main.ts"></script>

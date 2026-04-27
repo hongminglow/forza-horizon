@@ -78,6 +78,8 @@ export class CarController {
   private completedLaps = 0;
   private raceStartTime = 0;
   private lapStartTime = 0;
+  private pauseStartTime: number | null = null;
+  private finishTime: number | null = null;
   private bestLapTime: number | null = null;
   private finished = false;
   private lastCollision: string | null = null;
@@ -152,13 +154,14 @@ export class CarController {
 
   getHudState(now: number): CarHudState {
     const nearest = findNearestTrackSample(this.samples, this.position);
+    const stateTime = this.finishTime ?? this.pauseStartTime ?? now;
 
     return {
       speedKph: Math.abs(this.speed) * 3.6,
       lap: this.completedLaps,
       targetLaps: TARGET_LAPS,
-      raceTime: Math.max(0, now - this.raceStartTime),
-      lapTime: Math.max(0, now - this.lapStartTime),
+      raceTime: Math.max(0, stateTime - this.raceStartTime),
+      lapTime: Math.max(0, stateTime - this.lapStartTime),
       bestLapTime: this.bestLapTime,
       finished: this.finished,
       progress: this.currentProgress,
@@ -171,6 +174,26 @@ export class CarController {
 
   restart(now: number): void {
     this.reset(now);
+  }
+
+  setPaused(paused: boolean, now: number): void {
+    if (this.finished) {
+      return;
+    }
+
+    if (paused) {
+      this.pauseStartTime = this.pauseStartTime ?? now;
+      return;
+    }
+
+    if (this.pauseStartTime === null) {
+      return;
+    }
+
+    const pausedDuration = Math.max(0, now - this.pauseStartTime);
+    this.raceStartTime += pausedDuration;
+    this.lapStartTime += pausedDuration;
+    this.pauseStartTime = null;
   }
 
   private reset(now: number): void {
@@ -189,6 +212,8 @@ export class CarController {
     this.checkpointMask = 0;
     this.completedLaps = 0;
     this.finished = false;
+    this.pauseStartTime = null;
+    this.finishTime = null;
     this.raceStartTime = now;
     this.lapStartTime = now;
     this.bestLapTime = null;
@@ -455,6 +480,7 @@ export class CarController {
 
       if (this.completedLaps >= TARGET_LAPS) {
         this.finished = true;
+        this.finishTime = now;
       }
     }
 

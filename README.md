@@ -1,6 +1,6 @@
-# Jungle Sprint Racer
+# Forza Horizon
 
-Jungle Sprint Racer is a first-person 3D browser racing game built with Vite, TypeScript, Three.js, and Rapier. The player drives a cockpit-view rally car around a single jungle track, racing through mud, dense vegetation, rocks, logs, and narrow forest edges.
+Forza Horizon is a first-person 3D browser racing game built with Vite, TypeScript, Three.js, and Rapier. The player drives a cockpit-view rally car around a single jungle track, racing through mud, dense vegetation, rocks, logs, and narrow forest edges.
 
 The project is focused on a playable driving loop rather than a menu-heavy experience. The main screen is the race: speed, lap count, timing, and the road ahead.
 
@@ -37,6 +37,8 @@ The car uses a custom vehicle controller layered over a Rapier physics world wit
 - Completing the race opens a congratulations summary with total time, best lap, lap count, and replay.
 - The pause/settings menu supports BGM on/off, mute, and volume adjustment.
 - Collision impacts trigger a procedural crash sound effect.
+- Race and lap timers pause while the settings menu is open and freeze after race completion.
+- Solid-looking roadside bushes and rocks use collision proxies or are kept away from the racing line.
 
 ## Technical Notes
 
@@ -46,6 +48,7 @@ The car uses a custom vehicle controller layered over a Rapier physics world wit
 - Assets: Procedural meshes and generated canvas textures for terrain, road, bark, leaves, rocks, mud, water, and vegetation.
 - UI: Lightweight DOM HUD for speed, lap count, time, best lap, and pause/settings.
 - Audio: Procedural Web Audio background music and crash sound effects with player-controlled volume.
+- Rendering: Road markings use raised non-flickering meshes/material offsets to avoid z-fighting.
 
 ## Scripts
 

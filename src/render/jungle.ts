@@ -38,7 +38,7 @@ export function buildJungleTrack(
 
   createTrackObstacles(scene, samples, materials, collisions);
   createJungleCanopy(scene, samples, materials, collisions);
-  createUndergrowth(scene, samples, materials);
+  createUndergrowth(scene, samples, materials, collisions);
   createRocks(scene, samples, materials, collisions);
 
   return collisions;
@@ -110,7 +110,7 @@ function createTireRuts(
       const position = sample.center
         .clone()
         .addScaledVector(sample.normal, offset);
-      position.y = 0.092;
+      position.y = 0.155;
       scale.set(0.8 + Math.sin(index * 0.11) * 0.08, 1, 0.86 + Math.cos(index * 0.05) * 0.12);
       matrix.compose(position, quaternion, scale);
       ruts.setMatrixAt(instance, matrix);
@@ -119,6 +119,7 @@ function createTireRuts(
   }
 
   ruts.receiveShadow = true;
+  ruts.renderOrder = 3;
   scene.add(ruts);
 }
 
@@ -136,11 +137,12 @@ function createMudPuddles(
     puddle.position.copy(sample.center);
     puddle.position.addScaledVector(sample.normal, (rng() - 0.5) * 6.4);
     puddle.position.addScaledVector(sample.tangent, (rng() - 0.5) * 3.2);
-    puddle.position.y = 0.104;
+    puddle.position.y = 0.162;
     puddle.rotation.x = -Math.PI * 0.5;
     puddle.rotation.z = rng() * Math.PI;
     puddle.scale.set(0.75 + rng() * 2.4, 0.28 + rng() * 0.75, 1);
     puddle.receiveShadow = true;
+    puddle.renderOrder = 2;
     scene.add(puddle);
   }
 }
@@ -157,9 +159,10 @@ function createFinishLine(
     createFinishLineMaterial(materials),
   );
   finishLine.position.copy(start.center);
-  finishLine.position.y = 0.13;
+  finishLine.position.y = 0.19;
   finishLine.rotation.y = tangentYaw;
   finishLine.receiveShadow = true;
+  finishLine.renderOrder = 4;
   scene.add(finishLine);
 
   const postGeometry = new THREE.CylinderGeometry(0.22, 0.3, 4.1, 12);
@@ -481,6 +484,7 @@ function createUndergrowth(
   scene: THREE.Scene,
   samples: TrackSample[],
   materials: JungleMaterials,
+  collisions: WorldCollisionMap,
 ): void {
   const rng = createRandom(128);
   const bushGeometry = new THREE.IcosahedronGeometry(1, 1);
@@ -511,15 +515,23 @@ function createUndergrowth(
   for (let index = 0; index < bushCount; index += 1) {
     const sample = samples[Math.floor(rng() * (samples.length - 1))];
     const side = rng() > 0.5 ? 1 : -1;
+    const size = 0.65 + rng() * 1.28;
     const position = sample.center
       .clone()
-      .addScaledVector(sample.normal, side * (TRACK_WIDTH * 0.5 + 3 + rng() * 17))
+      .addScaledVector(sample.normal, side * (TRACK_WIDTH * 0.5 + 8 + rng() * 19))
       .addScaledVector(sample.tangent, (rng() - 0.5) * 9);
-    const size = 0.8 + rng() * 2.2;
     quaternion.setFromEuler(new THREE.Euler(rng() * 0.14, rng() * Math.PI * 2, 0));
     scale.set(size * (1 + rng() * 0.6), size * (0.42 + rng() * 0.42), size);
     matrix.compose(new THREE.Vector3(position.x, scale.y * 0.85, position.z), quaternion, scale);
     bushes.setMatrixAt(index, matrix);
+
+    if (size > 1.35) {
+      collisions.circles.push({
+        center: new THREE.Vector3(position.x, 0, position.z),
+        radius: size * 1.24,
+        kind: "rock",
+      });
+    }
   }
 
   for (let index = 0; index < fernCount; index += 1) {
@@ -578,7 +590,7 @@ function createRocks(
     attempts += 1;
     const sample = samples[Math.floor(rng() * (samples.length - 1))];
     const side = rng() > 0.5 ? 1 : -1;
-    const distance = TRACK_WIDTH * 0.5 + 4 + rng() * 27;
+    const distance = TRACK_WIDTH * 0.5 + 7 + rng() * 29;
     const position = sample.center
       .clone()
       .addScaledVector(sample.normal, side * distance)
@@ -600,7 +612,7 @@ function createRocks(
     rocks.setMatrixAt(placedRocks, matrix);
     collisions.circles.push({
       center: new THREE.Vector3(position.x, 0, position.z),
-      radius: scale * 0.98,
+      radius: scale * 1.48,
       kind: "rock",
     });
     placedRocks += 1;

@@ -66,6 +66,8 @@ async function bootstrap(): Promise<void> {
   let lastCollisionSerial = latestHud.collisionSerial;
   const gameMenu = createGameMenu({
     onPauseChange(paused) {
+      carController.setPaused(paused, performance.now() / 1000);
+
       if (paused) {
         input.clear();
       }
@@ -246,7 +248,7 @@ function createHud(): { update: (state: CarHudState) => void } {
       }
 
       if (time) {
-        time.textContent = formatTime(state.finished ? state.bestLapTime ?? 0 : state.raceTime);
+        time.textContent = formatTime(state.raceTime);
       }
 
       if (best && finish) {
